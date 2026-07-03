@@ -1,375 +1,222 @@
-# React Native Full Course 2026 - Build Kribb (Full Stack App for IOS and Android)
-### https://youtu.be/WSppuT4A09Y
-<img width="960" height="540" alt="1" src="https://github.com/user-attachments/assets/f38d2b84-38a1-4d7e-964c-9225258de2ac" />
+<div align="center">
 
+<img src="screenshots/kribb-logo.png" alt="Kribb Logo" width="220"/>
 
-## Get started
+# 🏡 Kribb — Real Estate, Reimagined
 
-1. Install dependencies
+**A modern, full-stack React Native real estate marketplace — browse, list, save, and manage premium properties, all from your phone.**
 
-   ```bash
-   npm install
-   ```
+[![Expo](https://img.shields.io/badge/Expo-54.0.0-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev)
+[![React Native](https://img.shields.io/badge/React_Native-0.76-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactnative.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-Backend-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
+[![Clerk](https://img.shields.io/badge/Clerk-Auth-6C47FF?style=for-the-badge&logo=clerk&logoColor=white)](https://clerk.com)
+[![NativeWind](https://img.shields.io/badge/NativeWind-TailwindCSS-38BDF8?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://www.nativewind.dev/)
 
-2. Start the app
+[**🚀 Live Demo**](#-live-demo) · [**📱 Screenshots**](#-screenshots) · [**✨ Features**](#-features) · [**🛠 Tech Stack**](#-tech-stack) · [**⚙️ Setup**](#️-getting-started)
 
-   ```bash
-   npx expo start -c
-   ```
+</div>
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 📖 Overview
 
-## Supabase Queries
+**Kribb** is a full-stack mobile real estate platform built with **React Native + Expo Router**, designed to feel like a premium property-listing product (think Zillow / 99acres, mobile-first). It supports two experiences in one codebase:
 
-### User Table
+- 🧑‍💼 **Buyers/Users** — search, filter, browse, and save properties they love.
+- 🛠️ **Admins** — list new properties, mark listings as sold, and manage inventory directly from the app.
 
-```sql
-create table users (
-  id uuid default gen_random_uuid() primary key,
-  clerk_id text unique not null,
-  email text not null,
-  first_name text,
-  last_name text,
-  avatar_url text,
-  is_admin boolean default false,
-  created_at timestamp with time zone default now()
-);
-```
+The backend is powered by **Supabase (Postgres + Row Level Security)**, with **Clerk** handling authentication and issuing JWTs that Supabase verifies on every request — meaning every read/write is scoped and secured per-user out of the box.
 
-### User RLS Policies
+---
 
-```sql
--- Enable RLS on users table
-alter table users enable row level security;
+## 📱 Screenshots
 
-create policy "Users can insert own row"
-on users for insert
-with check (clerk_id = auth.jwt()->>'sub');
+<div align="center">
 
-create policy "Users can read own row"
-on users for select
-using (clerk_id = auth.jwt()->>'sub');
+| Splash Screen | Home Feed | Property Detail |
+|:---:|:---:|:---:|
+| <img src="screenshots/splash.jpeg" width="230"/> | <img src="screenshots/home.jpeg" width="230"/> | <img src="screenshots/property-detail.jpeg" width="230"/> |
 
-create policy "Users can update own row"
-on users for update
-using (clerk_id = auth.jwt()->>'sub');
-```
+| Home (Recommended) | Admin — Property Controls | Profile |
+|:---:|:---:|:---:|
+| <img src="screenshots/home2.jpeg" width="230"/> | <img src="screenshots/property-admin.jpeg" width="230"/> | <img src="screenshots/profile.jpeg" width="230"/> |
 
-### Properties Table
+</div>
 
-```sql
-create table properties (
-  id uuid default gen_random_uuid() primary key,
-  title text not null,
-  description text,
-  price numeric not null,
-  type text not null, -- 'apartment' | 'house' | 'villa' | 'studio'
-  bedrooms int not null default 1,
-  bathrooms int not null default 1,
-  area_sqft int,
-  address text not null,
-  city text not null,
-  latitude float,
-  longitude float,
-  images text[] default '{}', -- array of Supabase Storage URLs
-  is_featured boolean default false,
-  is_sold boolean default false,
-  created_at timestamp with time zone default now()
-);
+---
 
-alter table properties enable row level security;
+## ✨ Features
 
--- Anyone can read properties (public listings)
-create policy "Properties are publicly readable"
-on properties for select
-using (true);
-```
+### 👤 User Experience
+- 🔍 **Smart Search & Filters** — search by city, property name, or use advanced filters (price, beds, baths, type)
+- 🏠 **Featured & Recommended Feeds** — curated property carousels on the home screen
+- 🖼️ **Image Gallery Modal** — swipeable, full-screen property photo viewer
+- ❤️ **Save/Unsave Properties** — one-tap save synced live to Supabase per user
+- 📍 **Interactive Map** — embedded map view with exact property location per listing
+- 📞 **Contact Agent via WhatsApp** — direct deep-link to WhatsApp from any listing
+- 🔐 **Secure Auth** — email/password sign-in & sign-up with MFA (email code verification) via Clerk
 
-### Saved Property Table
+### 🛠️ Admin Experience
+- ➕ **Add Property** — admins can list new properties directly from the app
+- ✅ **Mark as Sold** — toggle listing status instantly, reflected across the app
+- 🗑️ **Delete Listings** — remove properties with a confirmation-guarded action
+- 🛡️ **Role-based Access** — `is_admin` flag synced from Supabase controls which UI/actions are visible
 
-```sql
-create table saved_properties (
-  id uuid default gen_random_uuid() primary key,
-  user_clerk_id text not null references users(clerk_id) on delete cascade,
-  property_id uuid not null references properties(id) on delete cascade,
-  created_at timestamp with time zone default now(),
-  unique(user_clerk_id, property_id) -- prevents duplicate saves
-);
+### ⚙️ Engineering Highlights
+- 🔑 **Clerk ⇄ Supabase JWT bridge** — every Supabase call is authenticated with the signed-in user's Clerk token, enforced via Row Level Security — no service-role keys exposed on the client
+- 🧠 **Custom Hooks** — `useSupabase`, `useUserSync`, `useSavedProperty` encapsulate all data/auth logic cleanly
+- 🗂️ **File-based Routing** — Expo Router with route groups (`(auth)`, `(root)/(tabs)`) for clean navigation structure
+- 🎨 **NativeWind (Tailwind for RN)** — custom design tokens (brand colors, Rubik font family) via `tailwind.config.js`
+- 🏗️ **Zustand Store** — lightweight global state for user/session data
 
-alter table saved_properties enable row level security;
+---
 
-create policy "Users can read own saved properties"
-on saved_properties for select
-using (user_clerk_id = auth.jwt()->>'sub');
+## 🛠 Tech Stack
 
-create policy "Users can insert saved properties"
-on saved_properties for insert
-with check (user_clerk_id = auth.jwt()->>'sub');
+| Layer | Technology |
+|---|---|
+| **Framework** | React Native (Expo, Expo Router) |
+| **Language** | TypeScript |
+| **Styling** | NativeWind (Tailwind CSS for React Native) |
+| **Authentication** | Clerk (email/password + MFA) |
+| **Backend / Database** | Supabase (PostgreSQL + Row Level Security) |
+| **State Management** | Zustand |
+| **Build & Distribution** | EAS Build (Android internal distribution), Expo Application Services |
+| **Maps** | OpenStreetMap embed |
 
-create policy "Users can delete own saved properties"
-on saved_properties for delete
-using (user_clerk_id = auth.jwt()->>'sub');
+---
+
+## 🗂️ Project Structure
 
 ```
-
-### Insert Public Property Image Bucket
-
-```sql
-insert into storage.buckets (id, name, public)
-values ('property-images', 'property-images', true);
-
--- Allow anyone to read images (they're public listings)
-create policy "Public can read property images"
-on storage.objects for select
-using (bucket_id = 'property-images');
+kribb/
+├── app/
+│   ├── (auth)/              # Sign-in, sign-up screens
+│   │   ├── sign-in.tsx
+│   │   └── sign-up.tsx
+│   └── (root)/
+│       ├── (tabs)/          # Bottom tab navigation
+│       │   ├── index.tsx        # Home feed
+│       │   ├── search.tsx       # Search + filters
+│       │   ├── create.tsx       # Add property (admin)
+│       │   ├── saved.tsx        # Saved properties
+│       │   └── profile.tsx      # User profile
+│       └── property/
+│           └── [id].tsx     # Property detail screen
+├── components/
+│   ├── PropertyCard.tsx     # Reusable property list card
+│   ├── FeaturedCard.tsx     # Home feed featured carousel card
+│   ├── FilterModal.tsx      # Search filter bottom sheet
+│   ├── ImageGalleryModal.tsx
+│   └── ImageGalleryModal.web.tsx
+├── hooks/
+│   ├── useSupabase.ts       # Clerk-authenticated Supabase client
+│   ├── useUserSync.ts       # Syncs Clerk user → Supabase users table
+│   └── useSavedProperty.ts  # Save/unsave logic per property
+├── lib/
+│   └── supabase.ts          # Supabase client factory
+├── store/
+│   └── userStore.ts         # Zustand store (isAdmin, etc.)
+├── types/                   # Shared TypeScript types
+├── tailwind.config.js       # NativeWind design tokens
+└── app.json / eas.json      # Expo & EAS Build config
 ```
 
-### Admin Flag and Properties RLS Policies
+---
 
-```sql
-alter table users 
-add column is_admin boolean default false;
+## 🚀 Live Demo
 
-create policy "Admin can insert properties"
-on properties for insert
-with check (
-  exists (
-    select 1 from users
-    where clerk_id = auth.jwt()->>'sub'
-    and is_admin = true
-  )
-);
+> 📱 Scan the QR code below with the **[Expo Go](https://expo.dev/go)** app to run Kribb live on your phone:
 
-create policy "Admin can update properties"
-on properties for update
-using (
-  exists (
-    select 1 from users
-    where clerk_id = auth.jwt()->>'sub'
-    and is_admin = true
-  )
-);
-
-create policy "Admin can delete properties"
-on properties for delete
-using (
-  exists (
-    select 1 from users
-    where clerk_id = auth.jwt()->>'sub'
-    and is_admin = true
-  )
-);
-
-create policy "Admin can upload property images"
-on storage.objects for insert
-with check (
-  bucket_id = 'property-images'
-  and exists (
-    select 1 from users
-    where clerk_id = auth.jwt()->>'sub'
-    and is_admin = true
-  )
-);
+```
+🔗 Live Preview: <ADD-YOUR-EXPO-SNACK-OR-EAS-UPDATE-LINK-HERE>
 ```
 
-### Seeding Properties
+*(No install needed — instant preview via Expo Go)*
 
-```sql
-insert into properties (
-  title, description, price, type, bedrooms, bathrooms,
-  area_sqft, address, city, latitude, longitude, images, is_featured
-) values
+---
 
--- Featured Properties
-(
-  'Modern Luxury Villa',
-  'A stunning modern villa with open floor plan, floor-to-ceiling windows, and a private pool. Perfect for families looking for premium living.',
-  12500000,
-  'villa',
-  4, 3, 3200,
-  '14 Palm Grove Lane',
-  'Mumbai',
-  19.1136, 72.8697,
-  ARRAY[
-    'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800',
-    'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4?w=800',
-    'https://images.unsplash.com/photo-1560448204-603b3fc33ddc?w=800'
-  ],
-  true
-),
-(
-  'Sky View Penthouse',
-  'Breathtaking penthouse on the 32nd floor with panoramic city views, private terrace, and top-of-the-line finishes throughout.',
-  28000000,
-  'apartment',
-  3, 2, 2800,
-  '1 Skyline Tower, BKC',
-  'Mumbai',
-  19.0596, 72.8656,
-  ARRAY[
-    'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800',
-    'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
-    'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=800'
-  ],
-  true
-),
-(
-  'Green Valley Bungalow',
-  'Spacious bungalow surrounded by lush greenery with a large garden, modern kitchen, and serene neighborhood.',
-  8500000,
-  'house',
-  5, 4, 4500,
-  '7 Green Valley Road',
-  'Bangalore',
-  12.9716, 77.5946,
-  ARRAY[
-    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800',
-    'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800',
-    'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800'
-  ],
-  true
-),
-(
-  'Downtown Studio Loft',
-  'Chic studio loft in the heart of the city. Perfect for young professionals. Walking distance to metro, cafes, and offices.',
-  3200000,
-  'studio',
-  1, 1, 650,
-  '22 MG Road',
-  'Bangalore',
-  12.9756, 77.6097,
-  ARRAY[
-    'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=800',
-    'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800',
-    'https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800'
-  ],
-  true
-),
+## ⚙️ Getting Started
 
--- Regular Properties
-(
-  'Cozy 2BHK Apartment',
-  'Well-maintained apartment in a gated society with gym, clubhouse, and 24/7 security. Great connectivity to IT hubs.',
-  5500000,
-  'apartment',
-  2, 2, 1100,
-  '45 Whitefield Main Road',
-  'Bangalore',
-  12.9698, 77.7499,
-  ARRAY[
-    'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
-    'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800'
-  ],
-  false
-),
-(
-  'Sea Facing 3BHK',
-  'Premium sea-facing apartment with stunning Arabian Sea views, spacious balcony, modular kitchen, and covered parking.',
-  18500000,
-  'apartment',
-  3, 2, 1800,
-  '9 Marine Drive',
-  'Mumbai',
-  18.9438, 72.8235,
-  ARRAY[
-    'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800',
-    'https://images.unsplash.com/photo-1515263487990-61b07816b324?w=800'
-  ],
-  false
-),
-(
-  'Heritage Row House',
-  'Beautifully restored heritage row house with original architecture, courtyard, and modern interiors. Rare find in old city.',
-  9200000,
-  'house',
-  4, 3, 2800,
-  '3 Civil Lines',
-  'Delhi',
-  28.6862, 77.2217,
-  ARRAY[
-    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
-    'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800'
-  ],
-  false
-),
-(
-  'Golf Course Villa',
-  'Luxurious villa overlooking the golf course with private pool, landscaped garden, and world-class amenities.',
-  45000000,
-  'villa',
-  5, 5, 6000,
-  '1 Golf Course Road',
-  'Gurugram',
-  28.4595, 77.0266,
-  ARRAY[
-    'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=800',
-    'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800'
-  ],
-  false
-),
-(
-  'Smart Studio Apartment',
-  'Fully furnished smart studio with automated lighting, AC, and security. Ideal for bachelors and working professionals.',
-  2800000,
-  'studio',
-  1, 1, 500,
-  '18 Cyber City',
-  'Gurugram',
-  28.4943, 77.0880,
-  ARRAY[
-    'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800',
-    'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800'
-  ],
-  false
-),
-(
-  'Lake View Cottage',
-  'Peaceful 3-bedroom cottage with direct lake view, private garden, and a cozy fireplace. Perfect for a quiet family life.',
-  6800000,
-  'house',
-  3, 2, 1900,
-  '5 Lake Shore Drive',
-  'Pune',
-  18.5204, 73.8567,
-  ARRAY[
-    'https://images.unsplash.com/photo-1449844908441-8829872d2607?w=800',
-    'https://images.unsplash.com/photo-1416331108676-a22ccb276e35?w=800'
-  ],
-  false
-),
-(
-  'IT Corridor Flat',
-  'Affordable 2BHK in a prime IT corridor location. Walking distance to major tech parks, metro station, and shopping mall.',
-  4200000,
-  'apartment',
-  2, 1, 950,
-  '67 HITEC City',
-  'Hyderabad',
-  17.4474, 78.3762,
-  ARRAY[
-    'https://images.unsplash.com/photo-1560185008-b033106af5c3?w=800',
-    'https://images.unsplash.com/photo-1560184897-ae75f418493e?w=800'
-  ],
-  false
-),
-(
-  'Old City Haveli',
-  'Majestic haveli with stunning Mughal-inspired architecture, rooftop terrace with city views, and 6 large bedrooms.',
-  15000000,
-  'villa',
-  6, 4, 5200,
-  '12 Charminar Road',
-  'Hyderabad',
-  17.3616, 78.4747,
-  ARRAY[
-    'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=800',
-    'https://images.unsplash.com/photo-1600210491892-03d54c0aaf87?w=800'
-  ],
-  false
-);
+### Prerequisites
+- Node.js ≥ 18
+- npm or yarn
+- [Expo Go](https://expo.dev/go) app (for testing on a physical device)
+- A [Supabase](https://supabase.com) project
+- A [Clerk](https://clerk.com) application
+
+### Installation
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/<your-username>/kribb.git
+cd kribb
+
+# 2. Install dependencies
+npm install
+
+# 3. Set up environment variables
+cp .env.example .env
 ```
+
+### Environment Variables
+
+Create a `.env` file in the project root:
+
+```env
+EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url
+EXPO_PUBLIC_SUPABASE_KEY=your_supabase_anon_key
+```
+
+### Run the app
+
+```bash
+npx expo start
+```
+
+Scan the QR code with **Expo Go** (Android/iOS) or run on an emulator:
+
+```bash
+npx expo start --android
+npx expo start --ios
+```
+
+### Build for Android (EAS)
+
+```bash
+eas build --platform android --profile preview
+```
+
+---
+
+## 🔐 Authentication Flow
+
+Kribb uses **Clerk** for auth and bridges the session directly into **Supabase**:
+
+1. User signs in via Clerk (email/password + optional MFA).
+2. Clerk issues a signed JWT for the session.
+3. `useSupabase()` creates a Supabase client that attaches this JWT as the `Authorization` header on every request.
+4. Supabase's **Row Level Security** policies validate the JWT and scope data access per user — meaning a user can only save/delete *their own* data, enforced at the database level, not just the UI.
+
+---
+
+## 👨‍💻 Author
+
+**Sai Chandorkar**
+
+📧 saichandorkar96@gmail.com
+🔗 [LinkedIn](#) · [Portfolio](#) · [GitHub](#)
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License — feel free to fork and build on it.
+
+<div align="center">
+
+⭐ **If you like this project, consider giving it a star!** ⭐
+
+</div>
